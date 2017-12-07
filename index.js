@@ -3,6 +3,10 @@ var Module = require('module');
 function waveCallback_default() {
   return true;
 }
+
+function removeFromCache(moduleName) {
+  delete require.cache[moduleName];
+}
 /**
  * Wipes node.js module cache.
  * First it look for modules to wipe, and wipe them.
@@ -17,7 +21,7 @@ function wipeCache(stubs, resolver, waveCallback) {
   var wipeList = [];
   var removedList = []; // debug only
 
-  var cache = Object.assign({}, require.cache);
+  var cache = require.cache;
 
   // First wave
   Object.keys(cache).forEach(function (moduleName) {
@@ -25,7 +29,7 @@ function wipeCache(stubs, resolver, waveCallback) {
     if (test) {
       wipeList.push(moduleName);
       removedList.push(moduleName);
-      delete cache[moduleName];
+      removeFromCache(moduleName);
     }
   });
 
@@ -41,15 +45,12 @@ function wipeCache(stubs, resolver, waveCallback) {
           if (removeList.indexOf(subModule.filename) >= 0) {
             wipeList.push(moduleName);
             removedList.push(moduleName);
-            delete cache[moduleName];
+            removeFromCache(moduleName);
           }
         });
       }
     });
   }
-
-  // Replace module cache by wiped one
-  require.cache = Module._cache = cache;
 }
 
 module.exports = wipeCache;
