@@ -1,12 +1,63 @@
-var Module = require('module');
-
 function waveCallback_default() {
   return true;
 }
 
-function removeFromCache(moduleName) {
+function removeFromCache_nodejs(moduleName) {
   delete require.cache[moduleName];
 }
+
+function assignParents(modules) {
+  var result = {};
+  Object.keys(modules).forEach(function (moduleName) {
+    const parent = modules[moduleName];
+    const line = parent.children;
+    line.forEach(({id: childName}) => {
+      result[childName] = result[childName] || {parents: []};
+      result[childName].parents.push(moduleName)
+    });
+  });
+  return result;
+}
+
+function burn(cache, wipeList, lookup, callback, removeFromCache = removeFromCache_nodejs) {
+// Secondary wave
+  while (wipeList.length) {
+    var removeList = wipeList;
+    wipeList = [];
+
+    removeList.forEach(function (moduleName) {
+      if (callback(moduleName)) {
+        if (lookup[moduleName]) {
+          wipeList.push.apply(wipeList, lookup[moduleName].parents);
+          delete lookup[moduleName];
+        }
+
+        removeFromCache(moduleName);
+      }
+    });
+  }
+}
+
+function purge(cache, wipeList, callback, removeFromCache) {
+  burn(cache, wipeList, assignParents(cache), callback, removeFromCache);
+}
+
+function reverseString(str) {
+  var result = "";
+  for (var i = str.length - 1; i >= 0; i--) {
+    result += str[i];
+  }
+  return result;
+}
+
+function buildIndexForward(cache) {
+  return Object.keys(cache);
+}
+
+function getCache() {
+  return require.cache;
+}
+
 /**
  * Wipes node.js module cache.
  * First it look for modules to wipe, and wipe them.
@@ -16,41 +67,35 @@ function removeFromCache(moduleName) {
  * @param {Function} resolver function(stubs, moduleName) which shall return true, if module must be wiped out.
  * @param {Function} [waveCallback] function(moduleName) which shall return false, if parent module must not be wiped.
  */
-function wipeCache(stubs, resolver, waveCallback) {
+function wipeCache(stubs, resolver, waveCallback, removeFromCache = removeFromCache_nodejs) {
   waveCallback = waveCallback || waveCallback_default;
-  var wipeList = [];
-  var removedList = []; // debug only
+  const cache = require.cache;
 
-  var cache = require.cache;
-
-  // First wave
-  Object.keys(cache).forEach(function (moduleName) {
-    var test = resolver(stubs, moduleName);
-    if (test) {
-      wipeList.push(moduleName);
-      removedList.push(moduleName);
-      removeFromCache(moduleName);
-    }
-  });
-
-  // Secondary wave
-  while (wipeList.length) {
-    var removeList = wipeList;
-    wipeList = [];
-
-    Object.keys(cache).forEach(function (moduleName) {
-      if (waveCallback(moduleName)) {
-        var subCache = cache[moduleName].children;
-        subCache.forEach(function (subModule) {
-          if (removeList.indexOf(subModule.filename) >= 0) {
-            wipeList.push(moduleName);
-            removedList.push(moduleName);
-            removeFromCache(moduleName);
-          }
-        });
-      }
-    });
-  }
+  wipeMap(
+    cache,
+    (cache, callback) => cache.forEach(
+      moduleName => resolver(stubs, moduleName) && callback(moduleName)
+    ),
+    waveCallback,
+    removeFromCache
+  );
 }
 
-module.exports = wipeCache;
+function wipeMap(cache, callback, waveCallback, removeFromCache) {
+  const wipeList = [];
+  callback(buildIndexForward(cache), name => {
+    removeFromCache(name);
+    wipeList.push(name);
+  });
+  return purge(cache, wipeList, waveCallback);
+}
+
+exports.buildIndexForward = buildIndexForward;
+exports.getCache = getCache;
+exports.removeFromCache = removeFromCache_nodejs;
+exports.purge = purge;
+exports.burn = burn;
+
+exports.wipeCache = wipeCache;
+exports.wipeMap = wipeMap;
+

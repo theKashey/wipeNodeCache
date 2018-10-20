@@ -2,8 +2,8 @@
 /*global describe, before, beforeEach, it */
 'use strict';
 
-var assert = require('assert'),
-  wipe = require('../index');
+var assert = require('assert');
+const {wipeCache:wipe} = require('../index');
 
 var stubs = {
   'samples/bar': {
@@ -59,47 +59,47 @@ describe('cache wipe', function () {
       assert.equal(b.fn(), 1);
     });
 
-    if (1) {
-      it('should reset deep module module', function () {
-        wipe(null, function () {
-          return true
-        });
-        var a = require('./src/a.js');
-        assert.equal(a.fn(), 1);
-        assert.equal(a.c_fn(), 1);
 
-        wipe(null, function (stub, fileName) {
-          return fileName.indexOf('test/src/c') > 0
-        });
+    it('should reset deep module module', function () {
+      wipe(null, function () {
+        return true
+      });
+      var a = require('./src/a.js');
+      assert.equal(a.fn(), 1);
+      assert.equal(a.c_fn(), 1);
 
-        var c = require('./src/c.js');
-        assert.equal(c.fn(), 1);
-
-        var a2 = require('./src/a.js');
-        assert.equal(a2.fn(), 1);
+      wipe(null, function (stub, fileName) {
+        return fileName.indexOf('test/src/c') > 0
       });
 
-      it('should reset only deep module module', function () {
-        wipe(null, function () {
-          return true
-        });
-        var a = require('./src/a.js');
-        assert.equal(a.fn(), 1);
-        assert.equal(a.c_fn(), 1);
+      var c = require('./src/c.js');
+      assert.equal(c.fn(), 1);
 
-        wipe(null, function (stub, fileName) {
-          return fileName.indexOf('test/src/c') > 0
-        }, function () {
-          return false;
-        });
+      var a2 = require('./src/a.js');
+      assert.equal(a2.fn(), 1);
+    });
 
-        var c = require('./src/c.js');
-        assert.equal(c.fn(), 1);
-
-        var a2 = require('./src/a.js');
-        assert.equal(a2.fn(), 2);
+    it('should reset only deep module module', function () {
+      wipe(null, function () {
+        return true
       });
-    }
+      var a = require('./src/a.js');
+      assert.equal(a.fn(), 1);
+      assert.equal(a.c_fn(), 1);
+
+      wipe(null, function (stub, fileName) {
+        return fileName.indexOf('test/src/c') > 0
+      }, function () {
+        return false;
+      });
+
+      var c = require('./src/c.js');
+      assert.equal(c.fn(), 1);
+
+      var a2 = require('./src/a.js');
+      assert.equal(a2.fn(), 2);
+    });
+
   });
 
 });
