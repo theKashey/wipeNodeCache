@@ -3,7 +3,7 @@
 'use strict';
 
 var assert = require('assert');
-const {wipeCache:wipe} = require('../index');
+const {wipeCache:wipe} = require('../src');
 
 var stubs = {
   'samples/bar': {
