@@ -10,7 +10,7 @@ function assignParents(modules) {
   var result = {};
   Object.keys(modules).forEach(function (moduleName) {
     const parent = modules[moduleName];
-    const line = parent.children;
+    const line = parent.children || [];
     line.forEach(({id: childName}) => {
       result[childName] = result[childName] || {parents: []};
       result[childName].parents.push(moduleName)
