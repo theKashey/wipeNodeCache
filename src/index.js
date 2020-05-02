@@ -10,7 +10,7 @@ function assignParents(modules) {
   var result = {};
   Object.keys(modules).forEach(function (moduleName) {
     const parent = modules[moduleName];
-    const line = parent.children;
+    const line = parent.children || [];
     line.forEach(({id: childName}) => {
       result[childName] = result[childName] || {parents: []};
       result[childName].parents.push(moduleName)
@@ -38,8 +38,8 @@ function burn(cache, wipeList, lookup, callback, removeFromCache = removeFromCac
   }
 }
 
-function purge(cache, wipeList, callback, removeFromCache) {
-  burn(cache, wipeList, assignParents(cache), callback, removeFromCache);
+function purge(cache, wipeList, callback, removeFromCache, parents) {
+  burn(cache, wipeList, parents || assignParents(cache), callback, removeFromCache);
 }
 
 function reverseString(str) {
@@ -83,11 +83,14 @@ function wipeCache(stubs, resolver, waveCallback, removeFromCache = removeFromCa
 
 function wipeMap(cache, callback, waveCallback, removeFromCache) {
   const wipeList = [];
-  callback(buildIndexForward(cache), name => {
+  const parents = assignParents(cache);
+  const simpleIndex = buildIndexForward(cache);
+  const compositeIndex = [...new Set([...simpleIndex, ...Object.keys(parents)])];
+  callback(compositeIndex, name => {
     removeFromCache(name);
     wipeList.push(name);
   });
-  return purge(cache, wipeList, waveCallback);
+  return purge(cache, wipeList, waveCallback, undefined, parents);
 }
 
 exports.buildIndexForward = buildIndexForward;
