@@ -1,7 +1,7 @@
 {
   "name": "wipe-node-cache",
   "version": "2.1.1",
-  "description": "Wipes node.js cache in a controled way.",
+  "description": "Wipes node.js cache in a controlled way.",
   "main": "lib/index.js",
   "scripts": {
     "build": "BABEL_ENV=cjs babel src -d lib",
@@ -18,7 +18,8 @@
     "injection",
     "test",
     "mock",
-    "stub"
+    "stub",
+    "clean cache"
   ],
   "author": "Anton Korzunov",
   "license": "MIT",
