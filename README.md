@@ -30,7 +30,7 @@ require('./foo')();
 require('./foo')();
 //=> 2
 
-wipe(null, function(){return true;})
+wipe(null, function(){return true;}) // this means clean a whole cache
 
 require('./foo')();
 //=> 1 . Module is fresh now
@@ -42,25 +42,33 @@ But this is simply, and stupid way. We can do it better!
 
 ### wipe(object1, filterCallback, bubbleCallback)
 
-Foreach module in system wipe will call _filterCallback_ with 2 arguments – object1 and moduleName(absolute))
-And you shall return true, if you want to wipe this module.
+Foreach module in system wipe will call `filterCallback` with 2 arguments – `object1`(first argument to wipe) and (absolute)`moduleName`)
 
-After first pass wipe will enter bubbling stage, and will wipe all modules, which use first ones.
-Each time _bubbleCallback_ will be called with 1 argument - moduleName.
-And you can decide - purge it, or not. 
+👉 return true, if you want this module __wiped__.
+
+---
+
+After the first pass, when target modules are clened, wipe will enter a _bubbling stage_, where it will wipe all modules, which _use_ already evicted onces.
+
+On this state `bubbleCallback` will be called with 1 argument - moduleName.
+
+👉 return `true` if you want this module be purged as well, or `false` stop burn propagation.
 
 ## Examples
 
 (see examples in source)
 ```js
 function resolver(stubs, fileName, module) {
-  return !fileName.indexOf('node_modules') > 0
+  return fileName.indexOf('node_modules') === -1
 }
 
 // wipe everything, except node_modules
 wipe(null, resolver, function (moduleName) {
   return !resolver(null, moduleName);
 });
+
+// first wave - resolver returns true for any NON node_module, and that's all get evicted
+// second warve - `!resolver` returns true for node_modules, which, well, everything we have got at this stage... 😅
 ```
 
 ```js
@@ -84,10 +92,12 @@ wipe({
   'helpers/*': true,
   'App.js': true
 }, resolver, function (moduleName) {
+  // do not evict modules from node_modules and core
   return !(moduleName.indexOf('node_modules') > 0) && !(moduleName.indexOf('core') > 0)
 });
 ```
 
 ## Related
 
-- [proxyquire](https://github.com/thlorenz/proxyquire) - Usefull testing tool, but with bad caching politics.
+- [wipe-webpack-cache](https://github.com/theKashey/wipeWebpackCache) - the same package to be used with `webpack`
+- [rewiremock](https://github.com/theKashey/rewiremock) - dependency mocking tool powered by this library
