@@ -7,7 +7,7 @@ function removeFromCache_nodejs(moduleName) {
 }
 
 function assignParents(modules) {
-  var result = {};
+  const result = {};
   Object.keys(modules).forEach(function (moduleName) {
     const parent = modules[moduleName];
     const line = parent.children || [];
@@ -26,19 +26,19 @@ function removeModuleFromParent(parent, removedChild) {
 }
 
 function burn(cache, wipeList, lookup, callback, removeFromCache = removeFromCache_nodejs) {
-  const parentReference = new Map();
+  const parentReference = {};
 
   const remove = (moduleName) => {
     const lookupcache = lookup[moduleName];
     const module = cache[moduleName];
-    parentReference.delete(moduleName);
+    delete parentReference[moduleName];
     if (lookupcache) {
       lookupcache.parents.forEach(parent => {
-        if (!parentReference.has(parent)) {
-          parentReference.set(parent, []);
+        if (!parentReference[parent]) {
+          parentReference[parent]=[]
         }
         // set a flag to remove this module from a parent record
-        parentReference.get(parent).push(module);
+        parentReference[parent].push(module);
         wipeList.push(parent);
       });
       delete lookup[moduleName];
@@ -66,21 +66,13 @@ function burn(cache, wipeList, lookup, callback, removeFromCache = removeFromCac
   }
 
   // post cleanup - remove references from parent
-  parentReference.forEach(
-    (removedChildren, parent) => removedChildren.forEach(child => removeModuleFromParent(cache[parent], child))
+  Object.keys(parentReference).forEach(
+    (parent) => parentReference[parent].forEach(child => removeModuleFromParent(cache[parent], child))
   );
 }
 
 function purge(cache, wipeList, callback, removeFromCache, parents) {
   burn(cache, wipeList, parents || assignParents(cache), callback, removeFromCache);
-}
-
-function reverseString(str) {
-  var result = "";
-  for (var i = str.length - 1; i >= 0; i--) {
-    result += str[i];
-  }
-  return result;
 }
 
 function buildIndexForward(cache) {
