@@ -19,23 +19,56 @@ function assignParents(modules) {
   return result;
 }
 
+function removeModuleFromParent(parent, removedChild) {
+  if(parent && parent.children && removedChild) {
+    parent.children = parent.children.filter(child => child !== removedChild);
+  }
+}
+
 function burn(cache, wipeList, lookup, callback, removeFromCache = removeFromCache_nodejs) {
-// Secondary wave
+  const parentReference = new Map();
+
+  const remove = (moduleName) => {
+    const lookupcache = lookup[moduleName];
+    const module = cache[moduleName];
+    parentReference.delete(moduleName);
+    if (lookupcache) {
+      lookupcache.parents.forEach(parent => {
+        if (!parentReference.has(parent)) {
+          parentReference.set(parent, []);
+        }
+        // set a flag to remove this module from a parent record
+        parentReference.get(parent).push(module);
+        wipeList.push(parent);
+      });
+      delete lookup[moduleName];
+    }
+    removeFromCache(moduleName);
+  }
+
+  // primary wave
+  // execute what was set to be removed
+  let removeList = wipeList;
+  wipeList = [];
+  removeList.forEach(remove);
+
+  // Secondary wave
+  // remove parents of evicted modules while possible
   while (wipeList.length) {
-    var removeList = wipeList;
+    removeList = wipeList;
     wipeList = [];
 
     removeList.forEach(function (moduleName) {
       if (callback(moduleName)) {
-        if (lookup[moduleName]) {
-          wipeList.push.apply(wipeList, lookup[moduleName].parents);
-          delete lookup[moduleName];
-        }
-
-        removeFromCache(moduleName);
+        remove(moduleName);
       }
     });
   }
+
+  // post cleanup - remove references from parent
+  parentReference.forEach(
+    (removedChildren, parent) => removedChildren.forEach(child => removeModuleFromParent(cache[parent], child))
+  );
 }
 
 function purge(cache, wipeList, callback, removeFromCache, parents) {
@@ -87,7 +120,6 @@ function wipeMap(cache, callback, waveCallback, removeFromCache) {
   const simpleIndex = buildIndexForward(cache);
   const compositeIndex = [...new Set([...simpleIndex, ...Object.keys(parents)])];
   callback(compositeIndex, name => {
-    removeFromCache(name);
     wipeList.push(name);
   });
   return purge(cache, wipeList, waveCallback, undefined, parents);
