@@ -1,6 +1,6 @@
 {
   "name": "wipe-node-cache",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Wipes node.js cache in a controlled way.",
   "main": "lib/index.js",
   "scripts": {
