@@ -19,6 +19,19 @@ var stubs = {
   }
 };
 
+function collectModules() {
+  const modules = require.cache;
+  var result = {};
+  Object.keys(modules).forEach(function (moduleName) {
+    const parent = modules[moduleName];
+    const line = parent.children || [];
+    line.forEach(({id: childName}) => {
+      result[childName] = true;
+    });
+  });
+  return Object.keys(result);
+}
+
 describe('cache wipe', function () {
   describe('standart flow', function () {
     it('should cache modules', function () {
@@ -68,9 +81,17 @@ describe('cache wipe', function () {
       assert.equal(a.fn(), 1);
       assert.equal(a.c_fn(), 1);
 
+      // A and B are in the cache
+      assert.notEqual(collectModules().indexOf(require.resolve('./src/c.js')), -1);
+      assert.notEqual(collectModules().indexOf(require.resolve('./src/b.js')), -1);
+
       wipe(null, function (stub, fileName) {
         return fileName.indexOf('test/src/c') > 0
       });
+
+      // A and B are in no longer the cache
+      assert.equal(collectModules().indexOf(require.resolve('./src/c.js')), -1);
+      assert.equal(collectModules().indexOf(require.resolve('./src/b.js')), -1);
 
       var c = require('./src/c.js');
       assert.equal(c.fn(), 1);
@@ -87,11 +108,20 @@ describe('cache wipe', function () {
       assert.equal(a.fn(), 1);
       assert.equal(a.c_fn(), 1);
 
+      // A and B are in the cache
+      assert.notEqual(collectModules().indexOf(require.resolve('./src/c.js')), -1);
+      assert.notEqual(collectModules().indexOf(require.resolve('./src/b.js')), -1);
+
       wipe(null, function (stub, fileName) {
         return fileName.indexOf('test/src/c') > 0
       }, function () {
         return false;
       });
+
+      // C not in
+      assert.equal(collectModules().indexOf(require.resolve('./src/c.js')), -1);
+      // B is in
+      assert.notEqual(collectModules().indexOf(require.resolve('./src/b.js')), -1);
 
       var c = require('./src/c.js');
       assert.equal(c.fn(), 1);
