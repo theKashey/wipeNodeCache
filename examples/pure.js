@@ -1,5 +1,5 @@
 var path = require('path'),
-  wipe = require("../index");
+  wipe = require("../src");
 
 
 /** proxyquire-compatible resolver **/

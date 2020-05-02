@@ -3,4 +3,5 @@ lib
 *.idea
 *.iml
 .DS_Store
+lib
 coverage
